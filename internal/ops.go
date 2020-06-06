@@ -1,8 +1,7 @@
-package engine
+package internal
 
 import (
 	"fmt"
-	"git.agehadev.com/elliebelly/chip8le/internal"
 )
 
 type OpCode uint8
@@ -55,7 +54,7 @@ const (
 func (e *Engine) ExecCommand(op uint16) {
 	var err error
 
-	internal.Logger.Info(fmt.Sprintf("exec op: 0x%x", op))
+	Logger.Info(fmt.Sprintf("exec op: 0x%x", op))
 
 	switch OpCode(op & 0xFF00 >> 12) {
 	case CallClearReturnOps:

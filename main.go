@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"git.agehadev.com/elliebelly/chip8le/internal"
-	"git.agehadev.com/elliebelly/chip8le/internal/engine"
 	"log"
 	"os"
 	"runtime"
@@ -27,7 +26,6 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-
 	renderer := internal.NewRenderer()
 
 	renderer.ResolutionX = 64
@@ -36,7 +34,11 @@ func main() {
 	renderer.Init()
 	defer renderer.Stop()
 
-	e := engine.NewEngine(renderer)
+	input := internal.NewInput(renderer)
+
+	input.Init()
+
+	e := internal.NewEngine(renderer)
 
 	e.Init()
 

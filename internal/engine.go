@@ -1,8 +1,7 @@
-package engine
+package internal
 
 import (
 	"encoding/binary"
-	"git.agehadev.com/elliebelly/chip8le/internal"
 	"time"
 )
 
@@ -14,7 +13,7 @@ type Engine struct {
 	Game
 
 	ProgramLoaded bool
-	Renderer      *internal.Renderer
+	Renderer      *Renderer
 	Done          chan bool
 	IsStopped     bool
 }
@@ -31,10 +30,6 @@ type Execution struct {
 	StackPointer   uint8
 }
 
-type Input struct {
-	InputFlags uint16
-}
-
 type Memory struct {
 	Heap      []byte
 	Registers []byte
@@ -46,7 +41,7 @@ type Timers struct {
 	SoundTimer byte
 }
 
-func NewEngine(renderer *internal.Renderer) *Engine {
+func NewEngine(renderer *Renderer) *Engine {
 	return &Engine{
 		Renderer: renderer,
 		Game: Game{
@@ -75,7 +70,7 @@ func (e *Engine) Init() {
 	e.Pixels = make([]bool, int(e.ResolutionX)*int(e.ResolutionY))
 }
 
-func (e *Engine) LoadProgram(program *internal.Program) {
+func (e *Engine) LoadProgram(program *Program) {
 	program.Load(&e.Heap, e.ProgramCounter)
 	e.ProgramLoaded = true
 }
