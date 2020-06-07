@@ -38,7 +38,7 @@ func main() {
 
 	input.Init()
 
-	e := internal.NewEngine(renderer)
+	e := internal.NewEngine(renderer, input)
 
 	e.Init()
 

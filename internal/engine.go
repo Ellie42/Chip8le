@@ -8,14 +8,16 @@ import (
 type Engine struct {
 	Memory
 	Timers
-	Input
 	Execution
 	Game
 
-	ProgramLoaded bool
-	Renderer      *Renderer
-	Done          chan bool
-	IsStopped     bool
+	ProgramLoaded      bool
+	Renderer           *Renderer
+	Input              *Input
+	Done               chan bool
+	IsStopped          bool
+	WaitForInput       bool
+	InputStoreRegister uint16
 }
 
 type Game struct {
@@ -41,9 +43,10 @@ type Timers struct {
 	SoundTimer byte
 }
 
-func NewEngine(renderer *Renderer) *Engine {
+func NewEngine(renderer *Renderer, input *Input) *Engine {
 	return &Engine{
 		Renderer: renderer,
+		Input:    input,
 		Game: Game{
 			ResolutionX: 64,
 			ResolutionY: 32,
@@ -59,7 +62,9 @@ func (e *Engine) Init() {
 	e.Registers = make([]byte, 16)
 	e.Stack = make([]byte, 256)
 
-	e.InputFlags = 0
+	copy(e.Heap, textSprites)
+
+	e.Input.DownThisFrame = 0
 
 	e.MemoryPointer = 0
 	e.ProgramCounter = 0x200
@@ -76,7 +81,7 @@ func (e *Engine) LoadProgram(program *Program) {
 }
 
 func (e *Engine) Tick() {
-	cycles := uint(2)
+	cycles := uint(8)
 
 	for {
 		op := binary.BigEndian.Uint16(e.Heap[e.ProgramCounter : e.ProgramCounter+2])
@@ -86,40 +91,52 @@ func (e *Engine) Tick() {
 			break
 		}
 
+		if e.WaitForInput {
+			if e.Input.DownThisFrame == 0 {
+				break
+			}
+
+			e.Registers[e.InputStoreRegister] = byte(e.Input.StoredKey)
+			e.WaitForInput = false
+		}
+
+		e.ProgramCounter += 2
+
 		e.ExecCommand(op)
 
 		cycles -= opcycles
 
-		e.ProgramCounter += 2
-
 		if e.IsStopped {
-			return
+			break
 		}
 	}
 
 	e.SoundTimer--
 	e.DelayTimer--
+	e.Input.Reset()
 }
 
 func (e *Engine) Run() {
-	frameTimer := time.NewTicker((1000 / 60) * time.Millisecond)
+	lastFrame := time.Now()
 	e.Done = make(chan bool)
 
 	for {
-		select {
-		case <-e.Done:
+		if e.Renderer.Window.ShouldClose() {
 			return
-		case <-frameTimer.C:
-			if e.Renderer.Window.ShouldClose() {
-				return
-			}
-
-			if !e.IsStopped {
-				e.Tick()
-			}
-
-			e.Renderer.RenderFrame(&e.Pixels)
 		}
+
+		if !e.IsStopped {
+			e.Tick()
+		}
+
+		e.Renderer.RenderFrame(&e.Pixels)
+		now := time.Now()
+
+		nextFrame := lastFrame.Add(16666666)
+
+		time.Sleep(nextFrame.Sub(now))
+
+		lastFrame = now
 	}
 }
 

@@ -5,29 +5,31 @@ import (
 )
 
 var keyMap = map[glfw.Key]uint32{
-	glfw.Key1: 1 << 0,
-	glfw.Key2: 1 << 1,
-	glfw.Key3: 1 << 2,
-	glfw.Key4: 1 << 3,
+	glfw.Key1: 1 << 1,
+	glfw.Key2: 1 << 2,
+	glfw.Key3: 1 << 3,
+	glfw.Key4: 1 << 0xC,
 	glfw.KeyQ: 1 << 4,
 	glfw.KeyW: 1 << 5,
 	glfw.KeyE: 1 << 6,
-	glfw.KeyR: 1 << 7,
-	glfw.KeyA: 1 << 8,
-	glfw.KeyS: 1 << 9,
-	glfw.KeyD: 1 << 10,
-	glfw.KeyF: 1 << 11,
-	glfw.KeyZ: 1 << 12,
-	glfw.KeyX: 1 << 13,
-	glfw.KeyC: 1 << 14,
-	glfw.KeyV: 1 << 15,
+	glfw.KeyR: 1 << 0xD,
+	glfw.KeyA: 1 << 7,
+	glfw.KeyS: 1 << 8,
+	glfw.KeyD: 1 << 9,
+	glfw.KeyF: 1 << 0xE,
+	glfw.KeyZ: 1 << 0xA,
+	glfw.KeyX: 1 << 0,
+	glfw.KeyC: 1 << 0xB,
+	glfw.KeyV: 1 << 0xF,
 }
 
 type Input struct {
-	Flags     uint32
-	LastFlags uint32
+	DownThisFrame uint32
+	CurrentState  uint32
 
-	Renderer *Renderer
+	Renderer          *Renderer
+	StoreNextKeyPress bool
+	StoredKey         int
 }
 
 func NewInput(r *Renderer) *Input {
@@ -47,9 +49,24 @@ func (i *Input) OnKeyChange(w *glfw.Window, key glfw.Key, scancode int, action g
 		return
 	}
 
-	if action == glfw.Press || action == glfw.Repeat {
-		i.Flags |= flag
-	} else {
-		i.Flags |= ^flag
+	if i.StoreNextKeyPress {
+		x := 0
+
+		for f := flag; f > 1; f >>= 1 {
+			x++
+		}
+
+		i.StoredKey = x
+		i.StoreNextKeyPress = false
 	}
+
+	if action == glfw.Press || action == glfw.Repeat {
+		i.DownThisFrame |= flag
+	} else {
+		i.CurrentState |= ^flag
+	}
+}
+
+func (i *Input) Reset() {
+	i.CurrentState = 0
 }

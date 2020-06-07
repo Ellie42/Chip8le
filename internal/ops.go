@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 type OpCode uint8
@@ -37,10 +38,10 @@ const (
 
 	//EX9E 	KeyOp
 	//EXA1 	KeyOp
-	//FX07 	Timer
-	//FX0A 	KeyOp
 	InputOps
 
+	//FX07 	Timer
+	//FX0A 	KeyOp
 	//FX15 	Timer
 	//FX18 	Sound
 	//FX1E 	MEM
@@ -48,7 +49,7 @@ const (
 	//FX33 	BCD
 	//FX55 	MEM
 	//FX65 	MEM
-	MemoryOps
+	SystemOps
 )
 
 func (e *Engine) ExecCommand(op uint16) {
@@ -87,7 +88,7 @@ func (e *Engine) ExecCommand(op uint16) {
 		err = execDrawAt(e, op)
 	case InputOps:
 		err = execInputOps(e, op)
-	case MemoryOps:
+	case SystemOps:
 		err = execMemoryOps(e, op)
 	default:
 		panic(fmt.Sprintf("op out of range: 0x%x", op))
@@ -103,7 +104,7 @@ func execCallClearReturnOps(engine *Engine, op uint16) error {
 }
 
 func execGoto(engine *Engine, op uint16) error {
-	engine.ProgramCounter = uint(op&0x0FFF) - 2
+	engine.ProgramCounter = uint(op&0x0FFF)
 
 	return nil
 }
@@ -224,12 +225,14 @@ func execJumpOffset(engine *Engine, op uint16) error {
 }
 
 func execRandom(engine *Engine, op uint16) error {
-	panic("Not Implemented: Random")
+	engine.Registers[op&0x0F00>>8] = byte(rand.Int()&0xFF) & byte(op&0x00FF)
+
+	return nil
 }
 
 func execDrawAt(engine *Engine, op uint16) error {
-	x := int(op & 0x0F00 >> 8)
-	y := int(op & 0x00F0 >> 4)
+	x := int(engine.Registers[int(op&0x0F00>>8)])
+	y := int(engine.Registers[int(op&0x00F0>>4)])
 	mp := engine.MemoryPointer
 
 	for row := 0; row < int(op&0x000F); row++ {
@@ -256,7 +259,25 @@ func execDrawAt(engine *Engine, op uint16) error {
 }
 
 func execInputOps(engine *Engine, op uint16) error {
-	panic("Not Implemented: InputOps")
+	key := engine.Registers[op&0x0F00>>8]
+	pressed := false
+
+	if engine.Input.CurrentState&(1<<key) > 0 {
+		pressed = true
+	}
+
+	switch int(op & 0x00FF) {
+	case 0x9E:
+		if pressed {
+			engine.ProgramCounter += 2
+		}
+	case 0xA1:
+		if !pressed {
+			engine.ProgramCounter += 2
+		}
+	}
+
+	return nil
 }
 
 func execMemoryOps(engine *Engine, op uint16) error {
@@ -266,8 +287,9 @@ func execMemoryOps(engine *Engine, op uint16) error {
 	case 0xF007:
 		engine.Registers[x] = engine.DelayTimer
 	case 0xF00A:
-		//TODO wait for key
-		panic("nope")
+		engine.WaitForInput = true
+		engine.InputStoreRegister = op & 0x0F00 >> 8
+		engine.Input.StoreNextKeyPress = true
 	case 0xF015:
 		engine.DelayTimer = engine.Registers[x]
 	case 0xF018:
@@ -275,8 +297,7 @@ func execMemoryOps(engine *Engine, op uint16) error {
 	case 0xF01E:
 		engine.MemoryPointer += uint16(engine.Registers[x])
 	case 0xF029:
-		//TODO set memory pointer to text sprite location
-		panic("nope")
+		engine.MemoryPointer = uint16(engine.Registers[x]) * 5
 	case 0xF033:
 		num := engine.Registers[x]
 		engine.Heap[engine.MemoryPointer+2] = num % 10
