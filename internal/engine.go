@@ -21,7 +21,7 @@ type Engine struct {
 }
 
 type Game struct {
-	Pixels      []bool
+	Pixels      []uint
 	ResolutionX uint8
 	ResolutionY uint8
 }
@@ -29,13 +29,29 @@ type Game struct {
 type Execution struct {
 	ProgramCounter uint
 	MemoryPointer  uint16
-	StackPointer   uint8
+}
+
+type UintStack struct{
+	stack []uint
+	index int
+}
+
+func (s *UintStack) Push(i uint){
+	s.stack[s.index] = i
+	s.index++
+}
+
+func (s *UintStack) Pop() uint{
+	s.index--
+	i := s.stack[s.index]
+	s.stack[s.index] = 0
+	return i
 }
 
 type Memory struct {
 	Heap      []byte
 	Registers []byte
-	Stack     []byte
+	Stack     *UintStack
 }
 
 type Timers struct {
@@ -60,7 +76,10 @@ func (e *Engine) Init() {
 
 	e.Heap = make([]byte, 4096)
 	e.Registers = make([]byte, 16)
-	e.Stack = make([]byte, 256)
+	e.Stack = &UintStack{
+		stack: make([]uint, 256),
+		index: 0,
+	}
 
 	copy(e.Heap, textSprites)
 
@@ -72,7 +91,7 @@ func (e *Engine) Init() {
 
 	e.IsStopped = false
 
-	e.Pixels = make([]bool, int(e.ResolutionX)*int(e.ResolutionY))
+	e.Pixels = make([]uint, int(e.ResolutionX)*int(e.ResolutionY))
 }
 
 func (e *Engine) LoadProgram(program *Program) {
@@ -81,7 +100,7 @@ func (e *Engine) LoadProgram(program *Program) {
 }
 
 func (e *Engine) Tick() {
-	cycles := uint(8)
+	cycles := uint(2)
 
 	for {
 		op := binary.BigEndian.Uint16(e.Heap[e.ProgramCounter : e.ProgramCounter+2])
@@ -100,9 +119,9 @@ func (e *Engine) Tick() {
 			e.WaitForInput = false
 		}
 
-		e.ProgramCounter += 2
-
 		e.ExecCommand(op)
+
+		e.ProgramCounter += 2
 
 		cycles -= opcycles
 
@@ -121,6 +140,10 @@ func (e *Engine) Run() {
 	e.Done = make(chan bool)
 
 	for {
+		//hexNum := make([]byte,4)
+		//binary.BigEndian.PutUint32(hexNum, e.Input.CurrentState)
+		//fmt.Printf("%s\n", hex.EncodeToString(hexNum))
+
 		if e.Renderer.Window.ShouldClose() {
 			return
 		}

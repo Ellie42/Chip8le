@@ -97,15 +97,15 @@ func makeVao(points []float32) uint32 {
 	return vao
 }
 
-func (r *Renderer) RenderFrame(pixels *[]bool) {
+func (r *Renderer) RenderFrame(pixels *[]uint) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.UseProgram(r.Program)
 
-	for y := 0; y < int(r.ResolutionY); y++ {
-		for x := 0; x < int(r.ResolutionX); x++ {
-			filled := (*pixels)[y*int(r.ResolutionX)+x]
+	for y := 0; y < r.ResolutionY; y++ {
+		for x := 0; x < r.ResolutionX; x++ {
+			filled := (*pixels)[y*r.ResolutionX+x]
 
-			if filled {
+			if filled == 1 {
 				r.drawSquare(x, y)
 			}
 		}

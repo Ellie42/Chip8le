@@ -62,11 +62,12 @@ func (i *Input) OnKeyChange(w *glfw.Window, key glfw.Key, scancode int, action g
 
 	if action == glfw.Press || action == glfw.Repeat {
 		i.DownThisFrame |= flag
+		i.CurrentState |= flag
 	} else {
-		i.CurrentState |= ^flag
+		i.CurrentState &= ^flag
 	}
 }
 
 func (i *Input) Reset() {
-	i.CurrentState = 0
+	i.DownThisFrame = 0
 }

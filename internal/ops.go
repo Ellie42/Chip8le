@@ -10,7 +10,7 @@ type OpCode uint8
 const (
 	//0NNN 	Call
 	//00E0 	Display
-	//00EE 	Flow
+	//00EE 	Return
 	CallClearReturnOps OpCode = iota
 	Goto
 	Subroutine
@@ -57,7 +57,7 @@ func (e *Engine) ExecCommand(op uint16) {
 
 	Logger.Info(fmt.Sprintf("exec op: 0x%x", op))
 
-	switch OpCode(op & 0xFF00 >> 12) {
+	switch OpCode(op & 0xF000 >> 12) {
 	case CallClearReturnOps:
 		err = execCallClearReturnOps(e, op)
 	case Goto:
@@ -100,17 +100,28 @@ func (e *Engine) ExecCommand(op uint16) {
 }
 
 func execCallClearReturnOps(engine *Engine, op uint16) error {
-	panic("Not Implemented: CallClearReturnOps")
+	switch op {
+	case 0x00E0:
+		panic("clear that screen!")
+	case 0x00EE:
+		engine.ProgramCounter = engine.Stack.Pop() - 2
+	default:
+		panic("not implementing this code apparently")
+	}
+
+	return nil
 }
 
 func execGoto(engine *Engine, op uint16) error {
-	engine.ProgramCounter = uint(op&0x0FFF)
+	engine.ProgramCounter = uint(op&0x0FFF) - 2
 
 	return nil
 }
 
 func execSubroutine(engine *Engine, op uint16) error {
-	panic("Not Implemented: Subroutine")
+	engine.Stack.Push(engine.ProgramCounter)
+	engine.ProgramCounter = uint(op&0x0FFF) - 2
+	return nil
 }
 
 func execSkipEqualConst(engine *Engine, op uint16) error {
@@ -235,24 +246,38 @@ func execDrawAt(engine *Engine, op uint16) error {
 	y := int(engine.Registers[int(op&0x00F0>>4)])
 	mp := engine.MemoryPointer
 
+	collision := false
+
 	for row := 0; row < int(op&0x000F); row++ {
 		spritePixel := engine.Heap[mp]
 
 		for i := 0; i < 8; i++ {
-			index := (y+row)*int(engine.ResolutionX) + x + i
+			xIndex := (x + i) % 64
+
+			index := (y+row)*int(engine.ResolutionX) + xIndex
 			mask := byte(0x80 >> i)
 
-			//pixel := engine.Pixels[index]
-			spritePixelOn := false
+			pixel := engine.Pixels[index]
 
-			if spritePixel&mask > 0 {
-				spritePixelOn = true
+			oldPixel := pixel
+			newPixel := (spritePixel & mask) >> (7 - byte(i))
+
+			pixel = pixel ^ uint(newPixel)
+
+			if oldPixel == 1 && pixel == 0 {
+				collision = true
 			}
 
-			engine.Pixels[index] = spritePixelOn
+			engine.Pixels[index] = pixel
 		}
 
 		mp++
+	}
+
+	if collision {
+		engine.Registers[0xF] = 1
+	} else {
+		engine.Registers[0xF] = 0
 	}
 
 	return nil

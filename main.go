@@ -43,7 +43,8 @@ func main() {
 	e.Init()
 
 	program := &internal.Program{
-		FilePath: "games/Breakout [Carmelo Cortez, 1979].ch8",
+		//FilePath: "games/Breakout [Carmelo Cortez, 1979].ch8",
+		FilePath: "games/Brix [Andreas Gustafsson, 1990].ch8",
 	}
 
 	e.LoadProgram(program)
