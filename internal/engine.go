@@ -100,7 +100,7 @@ func (e *Engine) LoadProgram(program *Program) {
 }
 
 func (e *Engine) Tick() {
-	cycles := uint(2)
+	cycles := uint(8)
 
 	for {
 		op := binary.BigEndian.Uint16(e.Heap[e.ProgramCounter : e.ProgramCounter+2])
@@ -117,6 +117,7 @@ func (e *Engine) Tick() {
 
 			e.Registers[e.InputStoreRegister] = byte(e.Input.StoredKey)
 			e.WaitForInput = false
+			break
 		}
 
 		e.ExecCommand(op)

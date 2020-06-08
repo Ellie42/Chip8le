@@ -49,20 +49,24 @@ func (i *Input) OnKeyChange(w *glfw.Window, key glfw.Key, scancode int, action g
 		return
 	}
 
-	if i.StoreNextKeyPress {
-		x := 0
-
-		for f := flag; f > 1; f >>= 1 {
-			x++
-		}
-
-		i.StoredKey = x
-		i.StoreNextKeyPress = false
+	if action == glfw.Repeat {
+		i.CurrentState |= flag
 	}
 
-	if action == glfw.Press || action == glfw.Repeat {
+	if action == glfw.Press {
 		i.DownThisFrame |= flag
 		i.CurrentState |= flag
+
+		if i.StoreNextKeyPress {
+			x := 0
+
+			for f := flag; f > 1; f >>= 1 {
+				x++
+			}
+
+			i.StoredKey = x
+			i.StoreNextKeyPress = false
+		}
 	} else {
 		i.CurrentState &= ^flag
 	}

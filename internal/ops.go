@@ -57,6 +57,9 @@ func (e *Engine) ExecCommand(op uint16) {
 
 	Logger.Info(fmt.Sprintf("exec op: 0x%x", op))
 
+	// 12 result
+	//
+
 	switch OpCode(op & 0xF000 >> 12) {
 	case CallClearReturnOps:
 		err = execCallClearReturnOps(e, op)
@@ -89,7 +92,7 @@ func (e *Engine) ExecCommand(op uint16) {
 	case InputOps:
 		err = execInputOps(e, op)
 	case SystemOps:
-		err = execMemoryOps(e, op)
+		err = execSystemOps(e, op)
 	default:
 		panic(fmt.Sprintf("op out of range: 0x%x", op))
 	}
@@ -102,9 +105,11 @@ func (e *Engine) ExecCommand(op uint16) {
 func execCallClearReturnOps(engine *Engine, op uint16) error {
 	switch op {
 	case 0x00E0:
-		panic("clear that screen!")
+		for i := 0; i < len(engine.Pixels);i++{
+			engine.Pixels[i] = 0
+		}
 	case 0x00EE:
-		engine.ProgramCounter = engine.Stack.Pop() - 2
+		engine.ProgramCounter = engine.Stack.Pop()
 	default:
 		panic("not implementing this code apparently")
 	}
@@ -155,7 +160,7 @@ func execSetConst(engine *Engine, op uint16) error {
 }
 
 func execAddConst(engine *Engine, op uint16) error {
-	engine.Registers[op&0x0F00>>8] = engine.Registers[op&0x0F00>>8] + byte(op&0x00FF)
+	engine.Registers[op&0x0F00>>8] += byte(op&0x00FF)
 
 	return nil
 }
@@ -305,7 +310,7 @@ func execInputOps(engine *Engine, op uint16) error {
 	return nil
 }
 
-func execMemoryOps(engine *Engine, op uint16) error {
+func execSystemOps(engine *Engine, op uint16) error {
 	x := op & 0x0F00 >> 8
 
 	switch op & 0xF0FF {
@@ -330,11 +335,11 @@ func execMemoryOps(engine *Engine, op uint16) error {
 		engine.Heap[engine.MemoryPointer] = (num / 10 / 10) % 10
 	case 0xF055:
 		for i := 0; i <= int(x); i++ {
-			engine.Heap[int(engine.MemoryPointer)+i] = engine.Registers[int(x)+i]
+			engine.Heap[int(engine.MemoryPointer)+i] = engine.Registers[i]
 		}
 	case 0xF065:
 		for i := 0; i <= int(x); i++ {
-			engine.Registers[int(x)+i] = engine.Heap[int(engine.MemoryPointer)+i]
+			engine.Registers[i] = engine.Heap[int(engine.MemoryPointer)+i]
 		}
 	}
 

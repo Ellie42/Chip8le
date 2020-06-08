@@ -11,9 +11,13 @@ import (
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+var game = ""
 
 func main() {
 	flag.Parse()
+
+	game = flag.Arg(0)
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -43,8 +47,7 @@ func main() {
 	e.Init()
 
 	program := &internal.Program{
-		//FilePath: "games/Breakout [Carmelo Cortez, 1979].ch8",
-		FilePath: "games/Brix [Andreas Gustafsson, 1990].ch8",
+		FilePath: game,
 	}
 
 	e.LoadProgram(program)
