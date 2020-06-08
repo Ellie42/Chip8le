@@ -67,7 +67,7 @@ func (i *Input) OnKeyChange(w *glfw.Window, key glfw.Key, scancode int, action g
 			i.StoredKey = x
 			i.StoreNextKeyPress = false
 		}
-	} else {
+	} else if action != glfw.Repeat {
 		i.CurrentState &= ^flag
 	}
 }
